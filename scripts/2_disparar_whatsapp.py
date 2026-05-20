@@ -32,7 +32,7 @@ import sys
 
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
 CONFIG = {
-    "planilha_id": "SEU_ID_DA_PLANILHA_AQUI",
+    "planilha_id": "1_IVHF489S-4RiaDJYr3UVZtA2_jiSBsU5YF7mvTbFqM",
     "aba_leads": "Leads",
     "credenciais_json": "credentials.json",
     "sessao_whatsapp": "./whatsapp_session",
