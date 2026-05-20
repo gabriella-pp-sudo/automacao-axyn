@@ -1,0 +1,20 @@
+# Credenciais e sessão (NUNCA commitar)
+scripts/credentials.json
+scripts/whatsapp_session/
+*.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Logs
+*.log
+/tmp/
+
+# OS
+.DS_Store
+Thumbs.db

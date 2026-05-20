@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AXYN — CRM</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 { font-size: 20px; font-weight: 700; color: #f8fafc; }
+    header span { font-size: 13px; color: #64748b; }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      padding: 20px 24px;
+    }
+
+    .metric-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .metric-card .label { font-size: 12px; color: #64748b; margin-bottom: 6px; }
+    .metric-card .value { font-size: 28px; font-weight: 700; color: #f8fafc; }
+    .metric-card .sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+    .controls {
+      padding: 0 24px 16px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    input[type="text"] {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #e2e8f0;
+      padding: 8px 12px;
+      font-size: 14px;
+      width: 260px;
+    }
+
+    select {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #e2e8f0;
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+
+    button {
+      background: #3b82f6;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      padding: 8px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+
+    button:hover { background: #2563eb; }
+    button.secondary { background: #334155; }
+    button.secondary:hover { background: #475569; }
+
+    .table-wrap {
+      padding: 0 24px 24px;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      background: #1e293b;
+      border: 1px solid #334155;
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #94a3b8;
+      white-space: nowrap;
+    }
+
+    td {
+      border: 1px solid #1e293b;
+      padding: 9px 12px;
+      vertical-align: middle;
+    }
+
+    tr:nth-child(even) td { background: #0f172a; }
+    tr:nth-child(odd) td { background: #111827; }
+    tr:hover td { background: #1a2540; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .badge-prospectado   { background: #1e3a5f; color: #60a5fa; }
+    .badge-enviada       { background: #1a3a2a; color: #4ade80; }
+    .badge-followup1     { background: #3a2a10; color: #fbbf24; }
+    .badge-followup2     { background: #3a1a10; color: #fb923c; }
+    .badge-followup3     { background: #2a1a10; color: #f87171; }
+    .badge-conversa      { background: #1a3a3a; color: #22d3ee; }
+    .badge-fechado       { background: #1a3a1a; color: #86efac; }
+    .badge-perdido       { background: #2a1a1a; color: #f87171; }
+
+    .config-panel {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      margin: 0 24px 16px;
+      padding: 16px;
+    }
+
+    .config-panel h2 { font-size: 14px; color: #94a3b8; margin-bottom: 12px; }
+
+    .config-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .config-row label { font-size: 13px; color: #64748b; }
+
+    .config-row input {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    #status-msg {
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    #status-msg.ok  { background: #1a3a2a; color: #4ade80; display: block; }
+    #status-msg.err { background: #2a1a1a; color: #f87171; display: block; }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px;
+      color: #475569;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>AXYN — CRM de Prospecção</h1>
+  <span id="last-update">—</span>
+</header>
+
+<!-- Config da planilha -->
+<div class="config-panel">
+  <h2>⚙️ Configuração</h2>
+  <div class="config-row">
+    <label>ID da Planilha:</label>
+    <input type="text" id="sheet-id" placeholder="Cole aqui o ID do Google Sheets" />
+    <input type="text" id="api-key" placeholder="Chave de API do Google (opcional)" />
+    <button onclick="salvarConfig()">Salvar &amp; Carregar</button>
+  </div>
+  <div style="margin-top:8px; font-size:12px; color:#475569;">
+    Para usar sem chave de API, a planilha deve ser pública (Compartilhar → Qualquer pessoa com o link → Leitor).
+  </div>
+  <div id="status-msg"></div>
+</div>
+
+<!-- Métricas -->
+<div class="metrics">
+  <div class="metric-card">
+    <div class="label">Total de Leads</div>
+    <div class="value" id="m-total">—</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">Prospectados</div>
+    <div class="value" id="m-prospectado">—</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">Mensagens Enviadas</div>
+    <div class="value" id="m-enviada">—</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">Em Conversa</div>
+    <div class="value" id="m-conversa">—</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">Fechados</div>
+    <div class="value" id="m-fechado">—</div>
+    <div class="sub">clientes</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">Taxa de Conversão</div>
+    <div class="value" id="m-taxa">—</div>
+    <div class="sub">fechados / total</div>
+  </div>
+</div>
+
+<!-- Filtros -->
+<div class="controls">
+  <input type="text" id="busca" placeholder="🔍 Buscar por nome ou telefone..." oninput="filtrar()" />
+  <select id="filtro-status" onchange="filtrar()">
+    <option value="">Todos os status</option>
+    <option>Prospectado</option>
+    <option>Mensagem enviada</option>
+    <option>Follow-up 1</option>
+    <option>Follow-up 2</option>
+    <option>Follow-up 3</option>
+    <option>Em conversa</option>
+    <option>Fechado</option>
+    <option>Perdido</option>
+  </select>
+  <select id="filtro-nicho" onchange="filtrar()">
+    <option value="">Todos os nichos</option>
+  </select>
+  <button class="secondary" onclick="carregarDados()">↻ Atualizar</button>
+</div>
+
+<!-- Tabela -->
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Nome</th>
+        <th>Nicho</th>
+        <th>Telefone</th>
+        <th>Endereço</th>
+        <th>Status</th>
+        <th>Cadastro</th>
+        <th>Última Msg</th>
+        <th>Observações</th>
+      </tr>
+    </thead>
+    <tbody id="tabela-body">
+      <tr><td colspan="9" class="empty-state">Configure o ID da planilha acima e clique em "Salvar &amp; Carregar".</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  const BADGE = {
+    "prospectado":       "badge-prospectado",
+    "mensagem enviada":  "badge-enviada",
+    "follow-up 1":       "badge-followup1",
+    "follow-up 2":       "badge-followup2",
+    "follow-up 3":       "badge-followup3",
+    "em conversa":       "badge-conversa",
+    "fechado":           "badge-fechado",
+    "perdido":           "badge-perdido",
+  };
+
+  let todosLeads = [];
+
+  function salvarConfig() {
+    const id = document.getElementById("sheet-id").value.trim();
+    const key = document.getElementById("api-key").value.trim();
+    if (!id) { mostrarStatus("Cole o ID da planilha.", false); return; }
+    localStorage.setItem("axyn_sheet_id", id);
+    localStorage.setItem("axyn_api_key", key);
+    carregarDados();
+  }
+
+  async function carregarDados() {
+    const id  = localStorage.getItem("axyn_sheet_id");
+    const key = localStorage.getItem("axyn_api_key");
+    if (!id) return;
+
+    document.getElementById("sheet-id").value = id;
+    if (key) document.getElementById("api-key").value = key;
+
+    mostrarStatus("Carregando...", true, true);
+
+    try {
+      let url, dados;
+
+      if (key) {
+        // Usa API Key para planilhas privadas
+        url = `https://sheets.googleapis.com/v4/spreadsheets/${id}/values/Leads?key=${key}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Erro ${res.status}: ${await res.text()}`);
+        const json = await res.json();
+        dados = json.values || [];
+      } else {
+        // Planilha pública — exporta como CSV
+        url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=Leads`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Erro ${res.status}. Verifique se a planilha é pública.`);
+        const csv = await res.text();
+        dados = parseCSV(csv);
+      }
+
+      if (dados.length < 2) {
+        mostrarStatus("Planilha vazia ou sem dados na aba 'Leads'.", false);
+        return;
+      }
+
+      todosLeads = dados.slice(1).map((row, i) => ({
+        idx: i + 1,
+        nome:          row[0]  || "",
+        nicho:         row[1]  || "",
+        telefone:      row[2]  || "",
+        endereco:      row[3]  || "",
+        tem_site:      row[4]  || "",
+        status:        row[5]  || "",
+        cadastro:      row[6]  || "",
+        ultima_msg:    row[7]  || "",
+        followup1:     row[8]  || "",
+        followup2:     row[9]  || "",
+        followup3:     row[10] || "",
+        observacoes:   row[11] || "",
+      }));
+
+      atualizarNichos();
+      atualizarMetricas();
+      filtrar();
+      document.getElementById("last-update").textContent =
+        "Atualizado: " + new Date().toLocaleTimeString("pt-BR");
+      mostrarStatus(`${todosLeads.length} leads carregados.`, true);
+
+    } catch (e) {
+      mostrarStatus("Erro: " + e.message, false);
+    }
+  }
+
+  function parseCSV(text) {
+    return text.split("\n").map(line => {
+      const cells = [];
+      let cur = "", inQ = false;
+      for (const ch of line) {
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === "," && !inQ) { cells.push(cur); cur = ""; }
+        else { cur += ch; }
+      }
+      cells.push(cur);
+      return cells;
+    }).filter(r => r.some(c => c));
+  }
+
+  function atualizarNichos() {
+    const sel = document.getElementById("filtro-nicho");
+    const nichos = [...new Set(todosLeads.map(l => l.nicho).filter(Boolean))].sort();
+    sel.innerHTML = '<option value="">Todos os nichos</option>' +
+      nichos.map(n => `<option>${n}</option>`).join("");
+  }
+
+  function atualizarMetricas() {
+    const t = todosLeads.length;
+    const contar = s => todosLeads.filter(l => l.status.toLowerCase() === s.toLowerCase()).length;
+    document.getElementById("m-total").textContent = t;
+    document.getElementById("m-prospectado").textContent = contar("Prospectado");
+    const enviadas = todosLeads.filter(l =>
+      ["mensagem enviada","follow-up 1","follow-up 2","follow-up 3"]
+        .includes(l.status.toLowerCase())).length;
+    document.getElementById("m-enviada").textContent = enviadas;
+    document.getElementById("m-conversa").textContent = contar("Em conversa");
+    const fechados = contar("Fechado");
+    document.getElementById("m-fechado").textContent = fechados;
+    document.getElementById("m-taxa").textContent =
+      t > 0 ? (fechados / t * 100).toFixed(1) + "%" : "—";
+  }
+
+  function filtrar() {
+    const busca  = document.getElementById("busca").value.toLowerCase();
+    const status = document.getElementById("filtro-status").value.toLowerCase();
+    const nicho  = document.getElementById("filtro-nicho").value.toLowerCase();
+
+    const filtrados = todosLeads.filter(l => {
+      const matchBusca  = !busca  || l.nome.toLowerCase().includes(busca) || l.telefone.includes(busca);
+      const matchStatus = !status || l.status.toLowerCase() === status;
+      const matchNicho  = !nicho  || l.nicho.toLowerCase() === nicho;
+      return matchBusca && matchStatus && matchNicho;
+    });
+
+    renderTabela(filtrados);
+  }
+
+  function renderTabela(leads) {
+    const tbody = document.getElementById("tabela-body");
+
+    if (!leads.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhum lead encontrado.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = leads.map(l => {
+      const badgeClass = BADGE[l.status.toLowerCase()] || "";
+      const tel = l.telefone
+        ? `<a href="https://wa.me/55${l.telefone}" target="_blank" style="color:#60a5fa;">${l.telefone}</a>`
+        : "—";
+      return `<tr>
+        <td style="color:#475569">${l.idx}</td>
+        <td><strong>${esc(l.nome)}</strong></td>
+        <td>${esc(l.nicho)}</td>
+        <td>${tel}</td>
+        <td style="font-size:12px;color:#94a3b8">${esc(l.endereco)}</td>
+        <td><span class="badge ${badgeClass}">${esc(l.status)}</span></td>
+        <td style="font-size:12px;color:#64748b;white-space:nowrap">${esc(l.cadastro)}</td>
+        <td style="font-size:12px;color:#64748b;white-space:nowrap">${esc(l.ultima_msg)}</td>
+        <td style="font-size:12px;color:#94a3b8">${esc(l.observacoes)}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function mostrarStatus(msg, ok, neutro = false) {
+    const el = document.getElementById("status-msg");
+    el.textContent = msg;
+    el.className = neutro ? "" : (ok ? "ok" : "err");
+    el.style.display = "block";
+    if (ok && !neutro) setTimeout(() => { el.style.display = "none"; }, 4000);
+  }
+
+  // Carrega configuração salva ao abrir
+  window.addEventListener("load", () => {
+    const id = localStorage.getItem("axyn_sheet_id");
+    if (id) carregarDados();
+  });
+</script>
+</body>
+</html>
