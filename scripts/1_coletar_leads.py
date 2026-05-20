@@ -26,7 +26,7 @@ from datetime import datetime
 
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
 CONFIG = {
-    "planilha_id": "1_IVHF489S-4RiaDJYr3UVZtA2_jiSBsU5YF7mvTbFqM",         # ID do Google Sheets
+    "planilha_id": "1_IVHF489S-4RiaDJYr3UVZtA2_jiSBsU5YF7mvTbFqM",
     "aba_leads": "Leads",                               # Nome da aba
     "credenciais_json": "credentials.json",             # Arquivo de credenciais
     "cidade": "Ribeirão Preto",                         # Cidade alvo
