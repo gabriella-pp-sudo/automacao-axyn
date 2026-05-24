@@ -586,6 +586,7 @@
 
 <script>
 const SHEET_ID_PADRAO = '1_IVHF489S-4RiaDJYr3UVZtA2_jiSBsU5YF7mvTbFqM';
+const PUBLISHED_ID    = '2PACX-1vQGL4Yfx2bHAo7MJ1ZZMWyMSdYvj2vuJVk1QbKtP0p8Fo_SJx3JOAG2mPGzRS9jhlTOBDboNkBjKJmX';
 
 let todos_leads = [];
 let filtro_atual = 'todos';
@@ -632,10 +633,10 @@ async function carregarLeads() {
       if (!res.ok) throw new Error(`Erro ${res.status}: ${res.statusText}`);
       rows = (await res.json()).values || [];
     } else {
-      // Planilha pública via CSV export
-      const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=Leads`;
+      // Planilha publicada na web — usa o endpoint pub?output=csv (mais confiável)
+      const url = `https://docs.google.com/spreadsheets/d/e/${PUBLISHED_ID}/pub?output=csv`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error(`Erro ${res.status}. Torne a planilha pública ou informe uma API Key.`);
+      if (!res.ok) throw new Error(`Erro ${res.status}. Verifique se a planilha está publicada na web (Arquivo → Compartilhar → Publicar na web).`);
       rows = parseCSV(await res.text());
     }
 
