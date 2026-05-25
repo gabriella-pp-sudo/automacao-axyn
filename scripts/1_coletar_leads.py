@@ -46,6 +46,10 @@ CONFIG = {
         "advocacia",
         "contabilidade",
         "imobiliária",
+        "transportadora",
+        "eletricista",
+        "encanador",
+        "nutricionista",
     ],
     "max_leads_por_nicho": 20,                          # Quantos leads por busca
     "pausar_entre_buscas": 3,                           # Segundos entre buscas

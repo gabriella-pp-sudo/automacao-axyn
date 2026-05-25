@@ -98,6 +98,42 @@ TEMPLATES = {
         "e loja online, a partir de *R$997*.\n\n"
         "Posso te mostrar um exemplo? 🐶"
     ),
+    "transportadora": (
+        "Olá! Tudo bem? 🚚\n\n"
+        "Vi que a *{nome}* ainda não tem um site profissional — "
+        "e muitos clientes pesquisam transportadoras no Google antes de contratar.\n\n"
+        "Sem site, sua empresa não aparece nessas buscas e perde contratos para a concorrência.\n\n"
+        "Criamos sites para transportadoras com cotação online, áreas de atuação e "
+        "WhatsApp integrado, a partir de *R$997*.\n\n"
+        "Posso te mostrar um exemplo em 5 minutos? 🚀"
+    ),
+    "eletricista": (
+        "Olá! Tudo bem? ⚡\n\n"
+        "Vi que o(a) *{nome}* ainda não tem um site — e hoje a maioria das pessoas "
+        "busca eletricista no Google na hora da emergência.\n\n"
+        "Sem site, você não aparece e perde para quem tem.\n\n"
+        "Criamos sites para eletricistas com seus serviços, área de atendimento, "
+        "avaliações e botão de WhatsApp, a partir de *R$997*.\n\n"
+        "Posso te mostrar um exemplo rápido? ⚡"
+    ),
+    "encanador": (
+        "Olá! Tudo bem? 🔧\n\n"
+        "Vi que o(a) *{nome}* ainda não tem um site profissional.\n\n"
+        "Quando tem vazamento ou entupimento, as pessoas correm pro Google — "
+        "e contratam quem aparece primeiro.\n\n"
+        "Criamos sites para encanadores com serviços, atendimento de emergência "
+        "e WhatsApp integrado, a partir de *R$997*.\n\n"
+        "Posso te mostrar como ficou o site de outro encanador? 🔧"
+    ),
+    "nutricionista": (
+        "Olá! Tudo bem? 🥗\n\n"
+        "Vi que a *{nome}* ainda não tem um site profissional.\n\n"
+        "Pacientes pesquisam nutricionistas no Google antes de agendar — "
+        "e sem site, as chances de te encontrarem são muito menores.\n\n"
+        "Criamos sites para nutricionistas com especialidades, agendamento online "
+        "e depoimentos de pacientes, a partir de *R$997*.\n\n"
+        "Posso te mostrar um exemplo em 5 minutos? 🌱"
+    ),
     "default": (
         "Olá! Tudo bem? 😊\n\n"
         "Vi que o(a) *{nome}* ainda não tem um site profissional — "
