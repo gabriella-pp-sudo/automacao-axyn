@@ -17,6 +17,8 @@ EXECUÇÃO:
 """
 
 import time
+import os
+import sys
 import gspread
 from google.oauth2.service_account import Credentials
 from selenium import webdriver
@@ -27,15 +29,15 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from datetime import datetime
-import os
-import sys
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
 CONFIG = {
     "planilha_id": "1_IVHF489S-4RiaDJYr3UVZtA2_jiSBsU5YF7mvTbFqM",
     "aba_leads": "Leads",
-    "credenciais_json": "credentials.json",
-    "sessao_whatsapp": "./whatsapp_session",
+    "credenciais_json": os.path.join(SCRIPT_DIR, "credentials.json"),
+    "sessao_whatsapp": os.path.join(SCRIPT_DIR, "whatsapp_session"),
     "max_disparos_por_rodada": 15,
     "pausa_entre_mensagens": 10,   # segundos entre envios (10+ é mais seguro)
     "apenas_com_telefone": True,

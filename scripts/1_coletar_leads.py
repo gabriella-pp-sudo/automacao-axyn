@@ -14,6 +14,7 @@ CONFIGURAÇÃO:
 
 import time
 import re
+import os
 import gspread
 from google.oauth2.service_account import Credentials
 from selenium import webdriver
@@ -24,11 +25,15 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from datetime import datetime
 
+# Pasta onde este script está — garante que credentials.json seja encontrado
+# independente de onde o script é chamado
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
 CONFIG = {
     "planilha_id": "1_IVHF489S-4RiaDJYr3UVZtA2_jiSBsU5YF7mvTbFqM",
     "aba_leads": "Leads",                               # Nome da aba
-    "credenciais_json": "credentials.json",             # Arquivo de credenciais
+    "credenciais_json": os.path.join(SCRIPT_DIR, "credentials.json"),
     "cidade": "Ribeirão Preto",                         # Cidade alvo
     "nichos": [                                         # Nichos para prospectar
         "restaurante",
