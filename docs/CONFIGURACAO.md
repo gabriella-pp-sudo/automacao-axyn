@@ -197,21 +197,21 @@ Quando lead responde:
 
 O `scripts/3_agente_ia.py` monitora o WhatsApp em tempo real e responde leads usando Claude (Anthropic).
 
-### 11.1 Configurar a API Key
+### 11.1 Configurar a API Key (OpenAI)
 
-1. Acesse https://console.anthropic.com → **API Keys** → **Create Key**
-2. Copie a chave (começa com `sk-ant-...`)
-3. Defina como variável de ambiente:
+1. Acesse https://platform.openai.com/api-keys → **Create new secret key**
+2. Copie a chave (começa com `sk-proj-...`)
+3. Defina como variável de ambiente — **NUNCA coloque a chave direto no código**:
 
-**Windows:**
+**Windows (PowerShell):**
 ```powershell
-$env:ANTHROPIC_API_KEY = "sk-ant-SUA_CHAVE_AQUI"
+$env:OPENAI_API_KEY = "sk-proj-SUA_CHAVE_AQUI"
 python scripts/3_agente_ia.py
 ```
 
 **Mac/Linux:**
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-SUA_CHAVE_AQUI"
+export OPENAI_API_KEY="sk-proj-SUA_CHAVE_AQUI"
 python scripts/3_agente_ia.py
 ```
 
