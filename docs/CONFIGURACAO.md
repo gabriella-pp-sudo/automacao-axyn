@@ -193,7 +193,65 @@ Quando lead responde:
 
 ---
 
-## 11. Estrutura de arquivos
+## 11. Agente IA — Respostas Automáticas (script 3)
+
+O `scripts/3_agente_ia.py` monitora o WhatsApp em tempo real e responde leads usando Claude (Anthropic).
+
+### 11.1 Configurar a API Key
+
+1. Acesse https://console.anthropic.com → **API Keys** → **Create Key**
+2. Copie a chave (começa com `sk-ant-...`)
+3. Defina como variável de ambiente:
+
+**Windows:**
+```powershell
+$env:ANTHROPIC_API_KEY = "sk-ant-SUA_CHAVE_AQUI"
+python scripts/3_agente_ia.py
+```
+
+**Mac/Linux:**
+```bash
+export ANTHROPIC_API_KEY="sk-ant-SUA_CHAVE_AQUI"
+python scripts/3_agente_ia.py
+```
+
+### 11.2 Máquina de estados por lead (colunas M–P na planilha)
+
+| Status IA | Comportamento |
+|---|---|
+| `ATIVO` | Agente responde automaticamente |
+| `PAUSADO` | Humano assumiu — agente silencioso |
+| `FECHADO` | Venda concluída — sem mensagens |
+| `PERDIDO` | Lead descartado — sem mensagens |
+
+### 11.3 Gatilhos de pausa automática
+
+| Código | Situação |
+|---|---|
+| P1 | Lead quer fechar negócio |
+| P2 | Pedido de desconto |
+| P3 | Tom agressivo / hostilidade |
+| P4 | Escopo fora do serviço |
+| P5 | Lead pede para falar com humano |
+| P6 | Alto valor detectado (>R$3.000) |
+| P7 | Contexto fora do domínio da IA |
+
+### 11.4 Comandos do operador (enviados pelo próprio WhatsApp)
+
+```
+/retomar 5516999991234         → retoma como ATIVO
+/retomar-resumo 5516999991234  → retoma com resumo do histórico
+/fechar 5516999991234          → marca como FECHADO
+/perder 5516999991234          → marca como PERDIDO
+```
+
+### 11.5 Notificações para o operador
+
+Defina `CONFIG["telefone_operador"]` com o número do responsável (ex: `"5516999991234"`). O agente enviará alertas internos via WhatsApp ao detectar gatilhos de pausa.
+
+---
+
+## 12. Estrutura de arquivos
 
 ```
 automacao-axyn/
@@ -206,7 +264,8 @@ automacao-axyn/
 │   ├── whatsapp_session/     # ← criada automaticamente
 │   ├── 0_rodar_tudo.py       # Orquestrador principal
 │   ├── 1_coletar_leads.py    # Coleta leads no Google Maps
-│   └── 2_disparar_whatsapp.py # Dispara mensagens
+│   ├── 2_disparar_whatsapp.py # Dispara mensagens
+│   └── 3_agente_ia.py        # Agente IA de respostas automáticas
 └── crm/
     └── index.html            # Dashboard visual
 ```
