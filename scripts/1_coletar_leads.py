@@ -163,50 +163,82 @@ def buscar_leads_google_maps(nicho, cidade):
         for href in hrefs[: CONFIG["max_leads_por_nicho"]]:
             try:
                 driver.get(href)
-                time.sleep(2.5)
+                time.sleep(3)
 
-                # Nome do negócio
-                try:
-                    nome = WebDriverWait(driver, 8).until(
-                        EC.presence_of_element_located(
-                            (By.XPATH, '//h1[contains(@class,"DUwDvf")]')
-                        )
-                    ).text
-                except Exception:
-                    continue
+                # Nome do negócio — múltiplos seletores fallback
+                nome = ""
+                for seletor in [
+                    '//h1[contains(@class,"DUwDvf")]',
+                    '//h1[contains(@class,"fontHeadlineLarge")]',
+                    '//h1',
+                ]:
+                    try:
+                        nome = WebDriverWait(driver, 6).until(
+                            EC.presence_of_element_located((By.XPATH, seletor))
+                        ).text.strip()
+                        if nome:
+                            break
+                    except Exception:
+                        pass
 
                 if not nome:
                     continue
 
-                # Telefone
+                # Telefone — link tel: é o mais estável
                 telefone = ""
                 try:
-                    tel_el = driver.find_element(
-                        By.XPATH,
-                        '//button[@data-item-id="phone:tel"]//div[contains(@class,"Io6YTe")]',
+                    tel_link = driver.find_element(
+                        By.XPATH, '//a[starts-with(@href, "tel:")]'
                     )
-                    telefone = limpar_telefone(tel_el.text)
+                    telefone = limpar_telefone(
+                        tel_link.get_attribute("href").replace("tel:", "")
+                    )
                 except Exception:
                     pass
+
+                # Fallback: botão com data-item-id de telefone
+                if not telefone:
+                    for seletor in [
+                        '//button[@data-item-id="phone:tel"]//div[contains(@class,"Io6YTe")]',
+                        '//button[contains(@aria-label,"Ligar")]//div',
+                        '//button[contains(@data-item-id,"phone")]//div',
+                    ]:
+                        try:
+                            telefone = limpar_telefone(
+                                driver.find_element(By.XPATH, seletor).text
+                            )
+                            if telefone:
+                                break
+                        except Exception:
+                            pass
 
                 # Endereço
                 endereco = ""
-                try:
-                    end_el = driver.find_element(
-                        By.XPATH,
-                        '//button[@data-item-id="address"]//div[contains(@class,"Io6YTe")]',
-                    )
-                    endereco = end_el.text
-                except Exception:
-                    pass
+                for seletor in [
+                    '//button[@data-item-id="address"]//div[contains(@class,"Io6YTe")]',
+                    '//button[contains(@aria-label,"Endereço")]//div',
+                ]:
+                    try:
+                        endereco = driver.find_element(By.XPATH, seletor).text
+                        if endereco:
+                            break
+                    except Exception:
+                        pass
 
                 # Verifica se tem site
                 tem_site = False
-                try:
-                    driver.find_element(By.XPATH, '//a[@data-item-id="authority"]')
-                    tem_site = True
-                except Exception:
-                    pass
+                for seletor in [
+                    '//a[@data-item-id="authority"]',
+                    '//a[contains(@aria-label,"Site")]',
+                    '//a[contains(@href,"http") and not(contains(@href,"google"))'
+                    ' and not(contains(@href,"maps")) and @data-item-id]',
+                ]:
+                    try:
+                        driver.find_element(By.XPATH, seletor)
+                        tem_site = True
+                        break
+                    except Exception:
+                        pass
 
                 if nome and telefone and not tem_site:
                     leads.append({
@@ -217,6 +249,10 @@ def buscar_leads_google_maps(nicho, cidade):
                         "tem_site": "Não",
                     })
                     print(f"  ✅ Lead sem site: {nome} ({telefone})")
+                elif nome and not telefone:
+                    print(f"  ⏭️  Sem telefone: {nome}")
+                elif nome and tem_site:
+                    print(f"  ⏭️  Tem site: {nome}")
 
             except Exception:
                 continue
