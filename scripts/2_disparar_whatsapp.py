@@ -1,22 +1,21 @@
 """
-AXYN Prospector — Disparo WhatsApp Web (Gratuito)
-===================================================
+AXYN Prospector — Disparo WhatsApp Web
+========================================
 Lê leads com status "Prospectado" do Google Sheets
 e envia mensagens via WhatsApp Web usando Selenium.
 
 IMPORTANTE:
-  - Na primeira execução, você vai escanear o QR Code uma vez.
-  - Após isso, a sessão fica salva e não precisa escanear de novo.
-  - Execute durante o dia — evite horários fora do comercial (8h-18h).
-
-INSTALAÇÃO:
-  pip install -r requirements.txt
+  - Na primeira execução, escaneie o QR Code com seu celular.
+  - A sessão fica salva — nas próximas vezes não precisa escanear.
+  - Execute durante o horário comercial (8h-18h).
 
 EXECUÇÃO:
-  python 2_disparar_whatsapp.py
+  python scripts/2_disparar_whatsapp.py
 """
 
 import time
+import os
+import sys
 import gspread
 from google.oauth2.service_account import Credentials
 from selenium import webdriver
@@ -27,106 +26,55 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from datetime import datetime
-import os
-import sys
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
 CONFIG = {
     "planilha_id": "1_IVHF489S-4RiaDJYr3UVZtA2_jiSBsU5YF7mvTbFqM",
     "aba_leads": "Leads",
-    "credenciais_json": "credentials.json",
-    "sessao_whatsapp": "./whatsapp_session",
+    "credenciais_json": os.path.join(SCRIPT_DIR, "credentials.json"),
+    "sessao_whatsapp": os.path.join(SCRIPT_DIR, "whatsapp_session"),
     "max_disparos_por_rodada": 15,
-    "pausa_entre_mensagens": 10,   # segundos entre envios (10+ é mais seguro)
-    "apenas_com_telefone": True,
-    "horario_inicio": 8,           # não envia antes das 8h
-    "horario_fim": 18,             # não envia depois das 18h
+    "pausa_entre_mensagens": 12,   # segundos entre envios
+    "horario_inicio": 8,
+    "horario_fim": 18,
 }
 
-# ─── TEMPLATES DE MENSAGEM POR NICHO ────────────────────────────────────────
-TEMPLATES = {
-    "restaurante": (
-        "Olá! Tudo bem? 😊\n\n"
-        "Vi que o *{nome}* ainda não tem um site — e isso pode estar "
-        "custando clientes todos os dias.\n\n"
-        "Hoje 8 em cada 10 pessoas pesquisam no Google antes de sair "
-        "para comer. Sem site, vocês simplesmente não aparecem.\n\n"
-        "Criamos sites profissionais a partir de *R$997* — com cardápio, "
-        "localização, WhatsApp integrado e aparecendo no Google.\n\n"
-        "Posso te mostrar um exemplo em 5 minutos? 🚀"
-    ),
-    "clínica estética": (
-        "Olá! Tudo bem? 😊\n\n"
-        "Notei que a *{nome}* ainda não tem um site profissional.\n\n"
-        "Clientes pesquisam muito antes de escolher uma clínica — "
-        "e sem site, as chances de te encontrarem caem muito.\n\n"
-        "Criamos sites para clínicas com galeria de procedimentos, "
-        "agendamento online e Google integrado, a partir de *R$997*.\n\n"
-        "Posso te mostrar como ficou o site de uma clínica similar? 🌟"
-    ),
-    "salão de beleza": (
-        "Oi! Tudo bem? ✨\n\n"
-        "Vi que o *{nome}* ainda não tem site — e com a concorrência "
-        "de hoje, quem não aparece no Google fica pra trás.\n\n"
-        "Criamos sites lindos para salões, com portfólio de fotos, "
-        "agendamento e integração com WhatsApp, a partir de *R$997*.\n\n"
-        "Quer ver um exemplo? São 2 minutinhos 💅"
-    ),
-    "dentista": (
-        "Olá! Tudo bem? 😊\n\n"
-        "Vi que o consultório *{nome}* ainda não tem site — e hoje "
-        "a maioria dos pacientes pesquisa no Google antes de marcar.\n\n"
-        "Criamos sites para consultórios odontológicos com agendamento "
-        "online, planos aceitos e depoimentos de pacientes, a partir de *R$997*.\n\n"
-        "Posso mostrar um exemplo de consultório similar em 5 minutos? 🦷"
-    ),
-    "academia": (
-        "Olá! Tudo bem? 💪\n\n"
-        "Vi que a *{nome}* ainda não tem site — e muitas pessoas "
-        "pesquisam academia perto de casa pelo Google antes de visitar.\n\n"
-        "Criamos sites para academias com planos, horários, fotos da estrutura "
-        "e WhatsApp integrado, a partir de *R$997*.\n\n"
-        "Posso te mostrar um exemplo em 5 minutos? 🏋️"
-    ),
-    "pet shop": (
-        "Olá! Tudo bem? 🐾\n\n"
-        "Vi que o *{nome}* ainda não tem site — e tutores de pets "
-        "pesquisam muito no Google antes de escolher onde levar seu bichinho.\n\n"
-        "Criamos sites para pet shops com serviços, agendamento de banho/tosa "
-        "e loja online, a partir de *R$997*.\n\n"
-        "Posso te mostrar um exemplo? 🐶"
-    ),
-    "default": (
-        "Olá! Tudo bem? 😊\n\n"
-        "Vi que o(a) *{nome}* ainda não tem um site profissional — "
-        "e isso pode estar custando clientes todos os dias.\n\n"
-        "Hoje 8 em cada 10 pessoas pesquisam no Google antes de "
-        "contratar qualquer serviço. Sem site, você não aparece.\n\n"
-        "Criamos sites profissionais a partir de *R$997*, com "
-        "Google integrado e WhatsApp direto.\n\n"
-        "Posso te mostrar um exemplo em 5 minutos? 🚀"
-    ),
-}
+# ─── MENSAGEM PADRÃO ─────────────────────────────────────────────────────────
+MENSAGEM_INICIAL = (
+    "Oi! Tudo bem?\n\n"
+    "Me chamo Gabriella e sou especialista em automação com IA aqui em Ribeirão.\n\n"
+    "Pergunta rápida: quantas mensagens de WhatsApp sua empresa recebe por dia "
+    "que ficam sem resposta fora do horário comercial?\n\n"
+    "Desenvolvo um sistema que responde automaticamente, qualifica o cliente e "
+    "te chama só quando ele está pronto para fechar. E também um sistema que "
+    "busca empresas qualificadas no Google, gerando leads automaticamente. "
+    "Funciona perfeitamente para o seu negócio.\n\n"
+    "Posso te mostrar como funciona numa conversa de 15 minutos essa semana?"
+)
 
 FOLLOWUP_1 = (
-    "Oi {nome}! 😊 Só passando para ver se recebeu minha mensagem anterior.\n\n"
-    "Posso te mandar um exemplo de site que fizemos para um negócio similar ao seu?"
+    "Oi! 😊 Só passando para ver se recebeu minha mensagem anterior.\n\n"
+    "Consigo te mostrar numa conversa rápida de 15 minutos como o sistema "
+    "funciona na prática. Qual o melhor horário para você essa semana?"
 )
 
 FOLLOWUP_2 = (
-    "{nome}, sei que você é muito ocupado(a)!\n\n"
-    "Deixa eu te mandar direto o nosso portfólio — 30 segundos para ver:\n"
-    "👉 axyn.com.br/portfolio\n\n"
-    "Qualquer dúvida, é só falar! 🙌"
+    "Oi! Sei que você é muito ocupado(a).\n\n"
+    "Deixa eu te fazer uma pergunta direta: você já perdeu algum cliente "
+    "porque não conseguiu responder a tempo no WhatsApp?\n\n"
+    "É exatamente isso que o meu sistema resolve. Quer que eu te explique "
+    "em 15 minutos como funciona?"
 )
 
 FOLLOWUP_3 = (
-    "Tudo bem, {nome}! Não vou mais te incomodar 😄\n\n"
-    "Se um dia quiser aparecer no Google e atrair mais clientes "
-    "pelo site, é só me chamar. Boa sorte com o negócio! 🌟"
+    "Tudo bem! Não vou mais te incomodar. 😄\n\n"
+    "Se um dia quiser automatizar seu atendimento no WhatsApp e capturar "
+    "mais leads pelo Google, é só me chamar. Boa sorte com o negócio! 🌟"
 )
 
-# ─── GOOGLE SHEETS ────────────────────────────────────────────────────────────
+# ─── GOOGLE SHEETS ───────────────────────────────────────────────────────────
 SCOPES = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/drive",
@@ -145,7 +93,6 @@ COL = {
 
 
 def horario_permitido():
-    """Verifica se está dentro do horário comercial."""
     hora = datetime.now().hour
     return CONFIG["horario_inicio"] <= hora < CONFIG["horario_fim"]
 
@@ -156,72 +103,95 @@ def conectar_sheets():
     )
     client = gspread.authorize(creds)
     planilha = client.open_by_key(CONFIG["planilha_id"])
-    aba = planilha.worksheet(CONFIG["aba_leads"])
-    return aba
+    return planilha.worksheet(CONFIG["aba_leads"])
 
 
-def get_template(nicho, nome):
-    """Retorna mensagem personalizada pelo nicho."""
-    template = TEMPLATES.get(nicho.lower(), TEMPLATES["default"])
-    return template.format(nome=nome)
+def iniciar_driver():
+    os.makedirs(CONFIG["sessao_whatsapp"], exist_ok=True)
+    opcoes = webdriver.ChromeOptions()
+    opcoes.add_argument(f"--user-data-dir={CONFIG['sessao_whatsapp']}")
+    opcoes.add_argument("--no-sandbox")
+    opcoes.add_argument("--disable-dev-shm-usage")
+    opcoes.add_argument("--disable-gpu")
+    opcoes.add_argument("--window-size=1280,800")
+    opcoes.add_argument("--disable-blink-features=AutomationControlled")
+    opcoes.add_experimental_option("excludeSwitches", ["enable-automation"])
+    return webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()),
+        options=opcoes,
+    )
 
 
-def iniciar_whatsapp(driver):
-    """Abre WhatsApp Web e aguarda conexão."""
+def aguardar_login(driver):
+    """Abre WhatsApp Web e aguarda o usuário logar (ou usa sessão salva)."""
     driver.get("https://web.whatsapp.com")
     print("\n📱 Aguardando WhatsApp Web carregar...")
     print("   Se for a primeira vez, escaneie o QR Code com seu celular.")
-    print("   Aguardando até 90 segundos...\n")
-
+    print("   Aguardando até 120 segundos...\n")
     try:
-        # Aguarda a barra de busca aparecer — indica que está logado
-        WebDriverWait(driver, 90).until(
-            EC.presence_of_element_located(
-                (By.XPATH, '//div[@contenteditable="true"][@data-tab="3"]')
-            )
+        WebDriverWait(driver, 120).until(
+            EC.presence_of_element_located((By.XPATH, '//div[@id="pane-side"]'))
         )
         print("✅ WhatsApp Web conectado!\n")
         return True
     except Exception:
-        print("❌ Timeout aguardando WhatsApp. Tente novamente.")
+        print("❌ Timeout — tente novamente.")
         return False
 
 
-def enviar_mensagem(driver, telefone, mensagem):
-    """Envia mensagem para um número via WhatsApp Web."""
+def enviar_mensagem(driver, telefone: str, mensagem: str) -> bool:
+    """Abre a conversa via URL e envia a mensagem."""
     numero = "".join(filter(str.isdigit, telefone))
     if not numero.startswith("55"):
         numero = "55" + numero
 
-    # Validação básica: número brasileiro tem 12 ou 13 dígitos com código do país
     if len(numero) not in (12, 13):
-        print(f"    ⚠️  Número inválido ignorado: {numero}")
+        print(f"    ⚠️  Número inválido: {numero}")
         return False
 
-    url = f"https://web.whatsapp.com/send?phone={numero}&text="
+    url = f"https://web.whatsapp.com/send?phone={numero}"
     driver.get(url)
-    time.sleep(5)
+    time.sleep(6)  # aguarda a conversa carregar
 
-    # Verifica se abriu conversa ou deu erro (número inválido)
-    if "phone number shared via url is invalid" in driver.page_source.lower():
+    # Verifica número inválido
+    if "invalid" in driver.page_source.lower() or "phone number shared" in driver.page_source.lower():
         print(f"    ⚠️  Número não encontrado no WhatsApp: {numero}")
         return False
 
-    try:
-        caixa = WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located(
-                (By.XPATH, '//div[@contenteditable="true"][@data-tab="10"]')
+    # Localiza a caixa de mensagem com múltiplos seletores
+    caixa = None
+    seletores = [
+        '//div[@data-testid="conversation-compose-box-input"]',
+        '//div[@title="Digite uma mensagem"]',
+        '//div[@contenteditable="true" and @role="textbox" and @data-tab="10"]',
+        '//footer//div[@contenteditable="true"]',
+        '//div[@contenteditable="true" and @spellcheck="true"]',
+    ]
+    for seletor in seletores:
+        try:
+            caixa = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, seletor))
             )
-        )
+            break
+        except Exception:
+            continue
 
-        # Envia linha por linha com Shift+Enter para manter quebras
+    if not caixa:
+        print(f"    ❌ Caixa de mensagem não encontrada para {numero}")
+        return False
+
+    try:
+        caixa.click()
+        time.sleep(0.5)
+
+        # Digita linha a linha (quebras com Shift+Enter)
         linhas = mensagem.split("\n")
         for i, linha in enumerate(linhas):
             caixa.send_keys(linha)
             if i < len(linhas) - 1:
                 caixa.send_keys(Keys.SHIFT + Keys.ENTER)
 
-        time.sleep(1)
+        time.sleep(0.8)
         caixa.send_keys(Keys.ENTER)
         time.sleep(3)
         return True
@@ -231,8 +201,7 @@ def enviar_mensagem(driver, telefone, mensagem):
         return False
 
 
-def _dias_desde(data_str):
-    """Calcula quantos dias se passaram desde uma data 'dd/mm/yyyy HH:MM'."""
+def _dias_desde(data_str: str) -> int:
     try:
         data = datetime.strptime(data_str, "%d/%m/%Y %H:%M")
         return (datetime.now() - data).days
@@ -240,11 +209,9 @@ def _dias_desde(data_str):
         return 0
 
 
-def processar_disparos(aba, driver):
-    """Lê planilha e dispara mensagens para leads pendentes."""
+def processar_disparos(aba, driver) -> int:
     dados = aba.get_all_values()
-    linhas = dados[1:]  # pula cabeçalho
-
+    linhas = dados[1:]
     disparados = 0
     agora = datetime.now().strftime("%d/%m/%Y %H:%M")
 
@@ -253,58 +220,55 @@ def processar_disparos(aba, driver):
             print(f"\n⏸️  Limite de {CONFIG['max_disparos_por_rodada']} disparos atingido.")
             break
 
-        # Garante colunas suficientes
         while len(linha) < 12:
             linha.append("")
 
-        nome = linha[COL["nome"]]
-        nicho = linha[COL["nicho"]]
+        nome     = linha[COL["nome"]]
         telefone = linha[COL["telefone"]]
-        status = linha[COL["status"]]
+        status   = linha[COL["status"]]
 
         if not telefone or not nome:
             continue
 
-        linha_planilha = i + 2  # +1 cabeçalho, +1 índice base 0
+        linha_idx = i + 2  # +1 cabeçalho, +1 índice base 0
 
         # ── Disparo inicial ──
         if status == "Prospectado":
-            mensagem = get_template(nicho, nome)
             print(f"📤 Enviando para {nome} ({telefone})...")
-            if enviar_mensagem(driver, telefone, mensagem):
-                aba.update_cell(linha_planilha, COL["status"] + 1, "Mensagem enviada")
-                aba.update_cell(linha_planilha, COL["ultima_mensagem"] + 1, agora)
+            if enviar_mensagem(driver, telefone, MENSAGEM_INICIAL):
+                aba.update_cell(linha_idx, COL["status"] + 1, "Mensagem enviada")
+                aba.update_cell(linha_idx, COL["ultima_mensagem"] + 1, agora)
                 print(f"    ✅ Enviado!")
                 disparados += 1
                 time.sleep(CONFIG["pausa_entre_mensagens"])
 
-        # ── Follow-up 1 (após 1 dia sem resposta) ──
+        # ── Follow-up 1 (1 dia depois) ──
         elif status == "Mensagem enviada" and not linha[COL["followup1"]]:
             if _dias_desde(linha[COL["ultima_mensagem"]]) >= 1:
                 print(f"📤 Follow-up 1 para {nome}...")
-                if enviar_mensagem(driver, telefone, FOLLOWUP_1.format(nome=nome)):
-                    aba.update_cell(linha_planilha, COL["followup1"] + 1, agora)
-                    aba.update_cell(linha_planilha, COL["status"] + 1, "Follow-up 1")
+                if enviar_mensagem(driver, telefone, FOLLOWUP_1):
+                    aba.update_cell(linha_idx, COL["followup1"] + 1, agora)
+                    aba.update_cell(linha_idx, COL["status"] + 1, "Follow-up 1")
                     disparados += 1
                     time.sleep(CONFIG["pausa_entre_mensagens"])
 
-        # ── Follow-up 2 (após 2 dias do follow-up 1) ──
+        # ── Follow-up 2 (2 dias depois do FU1) ──
         elif status == "Follow-up 1" and not linha[COL["followup2"]]:
             if _dias_desde(linha[COL["followup1"]]) >= 2:
                 print(f"📤 Follow-up 2 para {nome}...")
-                if enviar_mensagem(driver, telefone, FOLLOWUP_2.format(nome=nome)):
-                    aba.update_cell(linha_planilha, COL["followup2"] + 1, agora)
-                    aba.update_cell(linha_planilha, COL["status"] + 1, "Follow-up 2")
+                if enviar_mensagem(driver, telefone, FOLLOWUP_2):
+                    aba.update_cell(linha_idx, COL["followup2"] + 1, agora)
+                    aba.update_cell(linha_idx, COL["status"] + 1, "Follow-up 2")
                     disparados += 1
                     time.sleep(CONFIG["pausa_entre_mensagens"])
 
-        # ── Follow-up 3 / Breakup (após 4 dias do follow-up 2) ──
+        # ── Follow-up 3 / Breakup (4 dias depois do FU2) ──
         elif status == "Follow-up 2" and not linha[COL["followup3"]]:
             if _dias_desde(linha[COL["followup2"]]) >= 4:
                 print(f"📤 Follow-up 3 (breakup) para {nome}...")
-                if enviar_mensagem(driver, telefone, FOLLOWUP_3.format(nome=nome)):
-                    aba.update_cell(linha_planilha, COL["followup3"] + 1, agora)
-                    aba.update_cell(linha_planilha, COL["status"] + 1, "Follow-up 3")
+                if enviar_mensagem(driver, telefone, FOLLOWUP_3):
+                    aba.update_cell(linha_idx, COL["followup3"] + 1, agora)
+                    aba.update_cell(linha_idx, COL["status"] + 1, "Follow-up 3")
                     disparados += 1
                     time.sleep(CONFIG["pausa_entre_mensagens"])
 
@@ -322,21 +286,10 @@ def main():
         print(f"   Disparos apenas entre {CONFIG['horario_inicio']}h e {CONFIG['horario_fim']}h.")
         sys.exit(0)
 
-    os.makedirs(CONFIG["sessao_whatsapp"], exist_ok=True)
-    opcoes = webdriver.ChromeOptions()
-    opcoes.add_argument(f"--user-data-dir={os.path.abspath(CONFIG['sessao_whatsapp'])}")
-    opcoes.add_argument("--no-sandbox")
-    opcoes.add_argument("--disable-dev-shm-usage")
-    opcoes.add_argument("--disable-gpu")
-    opcoes.add_argument("--window-size=1280,800")
-
-    driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()),
-        options=opcoes,
-    )
+    driver = iniciar_driver()
 
     try:
-        if not iniciar_whatsapp(driver):
+        if not aguardar_login(driver):
             return
 
         print("📋 Conectando ao Google Sheets...")
