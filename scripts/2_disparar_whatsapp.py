@@ -141,15 +141,18 @@ def aguardar_login(driver):
 
 def enviar_mensagem(driver, telefone: str, mensagem: str) -> bool:
     """Abre a conversa via URL e envia a mensagem."""
+    # Mantém apenas dígitos e remove o código do país (55) se vier na frente
     numero = "".join(filter(str.isdigit, telefone))
-    if not numero.startswith("55"):
-        numero = "55" + numero
+    if numero.startswith("55") and len(numero) > 11:
+        numero = numero[2:]  # remove o 55 do início, ex: 5517991614557 → 17991614557
 
-    if len(numero) not in (12, 13):
+    # Valida: deve ter DDD (2 dígitos) + número (8 ou 9 dígitos) = 10 ou 11 dígitos
+    if len(numero) not in (10, 11):
         print(f"    ⚠️  Número inválido: {numero}")
         return False
 
-    url = f"https://web.whatsapp.com/send?phone={numero}"
+    # WhatsApp Web exige o código do país na URL, mas não no display
+    url = f"https://web.whatsapp.com/send?phone=55{numero}"
     driver.get(url)
     time.sleep(6)  # aguarda a conversa carregar
 
