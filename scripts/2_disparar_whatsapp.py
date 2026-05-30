@@ -141,36 +141,44 @@ def aguardar_login(driver):
 
 def enviar_mensagem(driver, telefone: str, mensagem: str) -> bool:
     """Abre a conversa via URL e envia a mensagem."""
-    # Mantém apenas dígitos e remove o código do país (55) se vier na frente
     numero = "".join(filter(str.isdigit, telefone))
     if numero.startswith("55") and len(numero) > 11:
-        numero = numero[2:]  # remove o 55 do início, ex: 5517991614557 → 17991614557
+        numero = numero[2:]  # 5517991614557 → 17991614557
 
-    # Valida: deve ter DDD (2 dígitos) + número (8 ou 9 dígitos) = 10 ou 11 dígitos
     if len(numero) not in (10, 11):
         print(f"    ⚠️  Número inválido: {numero}")
         return False
 
-    # WhatsApp Web exige o código do país na URL, mas não no display
     url = f"https://web.whatsapp.com/send?phone=55{numero}"
     driver.get(url)
-    time.sleep(6)  # aguarda a conversa carregar
+    time.sleep(4)
 
-    # Verifica número inválido
-    if "invalid" in driver.page_source.lower() or "phone number shared" in driver.page_source.lower():
-        print(f"    ⚠️  Número não encontrado no WhatsApp: {numero}")
-        return False
+    # Clica no botão "Conversar" que aparece ao abrir contato novo via URL
+    for seletor_btn in [
+        '//div[@data-testid="popup-controls"]//button',
+        '//button[contains(@class,"_ak8l")]',
+        '//span[text()="Conversar"]/ancestor::button',
+        '//div[contains(@class,"_ak8q")]//button',
+    ]:
+        try:
+            btn = WebDriverWait(driver, 5).until(
+                EC.element_to_be_clickable((By.XPATH, seletor_btn))
+            )
+            btn.click()
+            time.sleep(3)
+            break
+        except Exception:
+            continue
 
     # Localiza a caixa de mensagem com múltiplos seletores
     caixa = None
-    seletores = [
+    for seletor in [
         '//div[@data-testid="conversation-compose-box-input"]',
         '//div[@title="Digite uma mensagem"]',
-        '//div[@contenteditable="true" and @role="textbox" and @data-tab="10"]',
         '//footer//div[@contenteditable="true"]',
+        '//div[@contenteditable="true" and @role="textbox"]',
         '//div[@contenteditable="true" and @spellcheck="true"]',
-    ]
-    for seletor in seletores:
+    ]:
         try:
             caixa = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.XPATH, seletor))
@@ -187,7 +195,6 @@ def enviar_mensagem(driver, telefone: str, mensagem: str) -> bool:
         caixa.click()
         time.sleep(0.5)
 
-        # Digita linha a linha (quebras com Shift+Enter)
         linhas = mensagem.split("\n")
         for i, linha in enumerate(linhas):
             caixa.send_keys(linha)
